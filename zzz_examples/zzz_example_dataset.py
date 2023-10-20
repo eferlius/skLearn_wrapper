@@ -5,6 +5,7 @@ import numpy as np
 import os
 import sys
 sys.path.insert(1, os.path.split(os.path.split(os.getcwd())[0])[0])
+sys.path.insert(2, os.path.split(os.getcwd())[0])
 import skLearn_wrapper as skw
 
 # Create random data
