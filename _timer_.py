@@ -2,7 +2,6 @@
 """
 Timer class
 """
-
 import time
 
 class TimerError(Exception):

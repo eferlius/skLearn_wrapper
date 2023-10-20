@@ -1,13 +1,35 @@
 import sklearn
 import numpy as np
 import pandas as pd
-import random
 from sklearn import preprocessing
 
 class Dataset:
     def __init__(self, pd_dataframe, features_list = [], class_col = ''):
+        '''
+        Parameters
+        ----------
+        pd_dataframe : pandas dataframe
+            contains all the data 
+        features_list : list of string, optional
+            names of the columns in the pd_dataframe that will give the features/X values. 
+            The default is [], which means that all the columns a part from the last one are considered as features.
+        class_col : string or None, optional
+            name of the column in the pd_dataframe that will give the class/labels/y values. 
+            If is None, a new columns named class_col full of Nan is created.
+            The default is '', which means that the last column is considered for class.
 
+        Returns
+        -------
+        None.
+
+        '''
+        # if class_col is None, create a fake column to store the information
+        if not class_col: 
+            pd_dataframe['class_col'] = np.nan
+            class_col = 'class_col'
+            
         self.df = pd_dataframe # original dataframe
+        
         if features_list == []:
             features_list = list(pd_dataframe.columns[:-1])
         self.features_list = features_list # list of strings: names of columns for features in the pd_dataframe
@@ -23,19 +45,19 @@ class Dataset:
         self.le = preprocessing.LabelEncoder()
         self.le.fit(self.classes)
 
-        
         # extraction of the pandas df
         self.X = self.df[features_list].values # 2d array
         self.y_decoded = self.df[class_col].values # 1d array # can be strings
-        self.y = self.encode_classes(self.df[class_col].values) # 1d array # are integers      
-        
+        self.y = self.encode_classes(self.df[class_col].values) # 1d array #are integers      
 
         self.n_samples = len(self.y)
         
     def encode_classes(self, classes):
+        '''returns classes in integers from 0'''
         return self.le.transform(classes)
     
     def decode_classes(self, y):
+        '''returns classes with real names'''
         return self.le.inverse_transform(y)
 
     def __str__(self):
@@ -44,13 +66,44 @@ class Dataset:
                nlabel = len(np.unique(self.y)), labnames = str(self.classes)))
     
     def reduce_samples(self, n_samples = -1):
+        '''
+        Returns a new dataset with the same options but different number of samples.
+
+        Parameters
+        ----------
+        n_samples : int, optional
+            Number of samples to be considered.
+            The default is -1. which means that, the number of samples is not modified.
+
+        Returns
+        -------
+        Dataset
+            with reduced number of samples.
+
+        '''
         if n_samples > 0:
             df = self.df.sample(n = n_samples)
+            # todo might there be a problem about encoder if a class is missing?
             return Dataset(df.sort_index(), self.features_list, self.class_col)
         else:
             return self
         
     def balance(self, col_name):
+        '''
+        Returns a new dataset with the same options but with the same number of 
+        samples for each item in col_name.
+
+        Parameters
+        ----------
+        col_name : string
+            name of the columns whose values will be used for grouping
+        
+        Returns
+        -------
+        Dataset
+            with reduced number of samples.
+
+        '''
         elements = self.df[col_name].values
             
         # count the number of occurrences of each class and gets the minimum
@@ -66,11 +119,50 @@ class Dataset:
                 df_concat = el_df_min.copy()
             else:
                 df_concat = pd.concat([df_concat, el_df_min], axis=0)
-                
+         # todo might there be a problem about encoder if a class is missing?        
         return Dataset(df_concat.sort_index(), self.features_list, self.class_col)
         
     def get_test_train_samples(self, test_size = -1, n_samples = -1, 
                                group_col = '', test_group_col = '', balance_col = ''):
+        '''
+        Returns X and y matrix for training and test, according to the other parameters.
+
+        Parameters
+        ----------
+        test_size : float or int, optional
+            If float, should be between 0.0 and 1.0 and represent the proportion of the dataset to include in the test split. 
+            If int, represents the absolute number of test samples.
+            If 1, all the samples goes to test
+            If 0, all the samples goes to train
+            If -1, the selection is made according to test_group_col
+            The default is -1.
+        n_samples : int, optional
+            Number of samples to be considered.
+            The default is -1. which means that, the number of samples is not modified.
+        group_col : string, optional
+            Name of the column in the original dataframe to be used for grouping in 
+            test and training. 
+            The default is '', which means that no grouping will be executed.
+        test_group_col : string, optional
+            All the rows whose value in the column "group_col" corresponding to this 
+            value will be used for testing. The others for training.
+            The default is '', which means that no grouping will be executed.
+        balance_col : string, optional
+            Name of the column in the original dataframe to be used for balancing the dataset. 
+            The default is '', which means that no balancing will be executed.
+
+        Returns
+        -------
+        X_train : matrix n_samples*n_features
+            Features for training.
+        X_test : matrix n_samples*n_features
+            Features for testing.
+        y_train : array n_samples
+            Ground truth classes for training.
+        y_test : array n_samples
+            Ground truth classes for testing.
+
+        '''
         
         assert test_size > -1 or (group_col != '' and test_group_col != ''),\
             "required test_size or group_col and test_group_col!"

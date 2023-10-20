@@ -11,7 +11,6 @@ collection of models
 listOfModels = []
 listOfModelsNames = []
 
-
 # from sklearn.linear_model import LinearRegression as mdl
 # listOfModels.append(mdl())
 # listOfModelsNames.append('linReg')
